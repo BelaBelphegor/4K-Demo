@@ -1,5 +1,6 @@
 NAME				= 4k-demo
-SRCS				= main.c
+SRCS				= main.c \
+					  metaball.c 
 SRCSPATH			= ./srcs/
 INCLUDES			= ./includes
 CC					= clang
