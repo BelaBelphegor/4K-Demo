@@ -1,12 +1,17 @@
 #include <SDL2/SDL.h>
-#include <SDL_mixer.h>
+// #include <SDL_mixer.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <time.h>
 #include "metaball.h"
 
-#define WINDW_H 600
-#define WINDW_W 800
+#define WINDW_W 1200
+#define WINDW_H 800
+
+static int random_min_max(int min, int max)
+{
+	return min + rand() % (max + 1 - min);
+}
 
 void	SDL_PutPixel(SDL_Texture *texture, int x, int y, int color)
 {
@@ -45,7 +50,7 @@ int		main(void)
 	/*
 	 ** Rendering variables
 	 */
-	unsigned int	pixels[WINDW_W * WINDW_H];
+	unsigned int	*pixels;
 	SDL_Texture 	*texture;
 	int				i;
 	int				j;
@@ -53,17 +58,25 @@ int		main(void)
 	/*
 	 ** Metaballs variables
 	 */
-	const int			MAX_METABALLS = 15;
+	const int			MAX_METABALLS = 8;
 	t_metaball			*ball_list[MAX_METABALLS];
-	const float			MIN_THRESHOLD = 0.99f;
+	const float			MIN_THRESHOLD = 0.98f;
 	const float			MAX_THRESHOLD = 1.01f;
 	float				sum;
 	int					metaball_iterator;
+
+	/*
+	 ** Timestamp for framerate. Need rework.
+	 */
+	unsigned int	current_time;
+	unsigned int	elapsed_time;
+	int				delta;
 	/*
 	 ** Main code.
 	 */
 	i = -1;
 	j = -1;
+	pixels = NULL;
 	renderer = NULL;
 	srand(time(NULL));
 	if (SDL_Init(SDL_INIT_VIDEO) != 0)
@@ -79,18 +92,22 @@ int		main(void)
 	keystate = (Uint8 *)SDL_GetKeyboardState(NULL);
 	quit = 1;
 	metaball_iterator = -1;
+	srand(time(NULL));
 	while (++metaball_iterator < MAX_METABALLS)
 	{
 		ball_list[metaball_iterator] = (t_metaball *)malloc(sizeof(t_metaball) + 1);
-		metaball_init(ball_list[metaball_iterator], rand() % WINDW_W, rand() % WINDW_H, 1 + rand() % 40);
+		metaball_init(ball_list[metaball_iterator], random_min_max(0, WINDW_W), random_min_max(0, WINDW_H), random_min_max(10, 50), -1, 1, random_min_max(1, 2));
 	}
-	int		dirx;
-	int		diry;
-
-	dirx = -1;
-	diry =  1;
+	current_time = 0;
+	elapsed_time = SDL_GetTicks();
+	pixels = (unsigned int *)malloc(WINDW_H * WINDW_W * sizeof(unsigned int));
 	while (quit)
 	{
+		current_time = SDL_GetTicks();
+		delta = current_time - elapsed_time;
+		elapsed_time = current_time;
+		if (delta < (1000 / 60))
+			SDL_Delay((1000 / 60) - delta);
 		i = -1;
 		memset(pixels, 0, WINDW_W * WINDW_H * sizeof(unsigned int));	
 		SDL_UpdateTexture(texture, NULL, pixels, WINDW_W * sizeof(unsigned int));
@@ -103,18 +120,18 @@ int		main(void)
 				{
 					sum += metaball_equation(ball_list[metaball_iterator], j, i);
 					if (sum >= MIN_THRESHOLD && sum <= MAX_THRESHOLD)
-						SDL_PutPixel(texture, j, i, rand() % 16777215);
+						SDL_PutPixel(texture, j, i, ball_list[metaball_iterator]->_color);
 				}
 			}
 		metaball_iterator = -1;
 		while (++metaball_iterator < MAX_METABALLS)
 		{
-			if ((ball_list[metaball_iterator]->_x + ball_list[metaball_iterator]->_radius / 2) >= WINDW_W || ball_list[metaball_iterator]->_x <= 0 + ball_list[metaball_iterator]->_radius /2)
-				dirx *= -1;
-			if (ball_list[metaball_iterator]->_y + ball_list[metaball_iterator]->_radius / 2 >= WINDW_H || ball_list[metaball_iterator]->_y <= 0 + ball_list[metaball_iterator]->_radius /2)
-				diry *= -1;
-			ball_list[metaball_iterator]->_x += dirx * 3;
-			ball_list[metaball_iterator]->_y += diry * 3;
+			if ((ball_list[metaball_iterator]->_x + ball_list[metaball_iterator]->_radius) >= WINDW_W - ball_list[metaball_iterator]->_radius || ball_list[metaball_iterator]->_x <= 0 + ball_list[metaball_iterator]->_radius)
+				ball_list[metaball_iterator]->_dir_x *= -1;
+			if (ball_list[metaball_iterator]->_y + ball_list[metaball_iterator]->_radius >= WINDW_H - ball_list[metaball_iterator]->_radius || ball_list[metaball_iterator]->_y <= 0 + ball_list[metaball_iterator]->_radius)
+				ball_list[metaball_iterator]->_dir_y *= -1;
+			ball_list[metaball_iterator]->_x += ball_list[metaball_iterator]->_dir_x * ball_list[metaball_iterator]->_speed * (delta / 16);
+			ball_list[metaball_iterator]->_y += ball_list[metaball_iterator]->_dir_y * ball_list[metaball_iterator]->_speed * (delta / 16);
 		}
 		while (SDL_PollEvent(&e))
 		{

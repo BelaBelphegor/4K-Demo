@@ -5,14 +5,8 @@ SRCSPATH			= ./srcs/
 INCLUDES			= ./includes
 CC					= clang
 CFLAGS				= -fomit-frame-pointer -Os
-SDL2				= -framework SDL2
-SDL2_MIXER			= -framework SDL2_mixer
-SDL2_HEADER 		= -I ~/Library/Frameworks/SDL2.framework/Headers
-SDL2_HEADER_MIXER	= -I ~/Library/Frameworks/SDL2_mixer.framework/Headers
-SDL					= -F ~/Library/Frameworks $(SDL2_MIXER) $(SDL2)
-SDL_HEADER			= -F ~/Library/Frameworks $(SDL2_HEADER_MIXER) $(SDL2_HEADER)
-INCLUDES_O			= -I $(INCLUDES) -I ./libft/includes
-INCLUDES_C			=  $(CFLAGS) $(SDL) $(SDL_HEADER) $(LFLAGS)
+INCLUDES_O			= -I $(INCLUDES) -I ./libft/includes -I ~/.brew/Cellar/sdl2/2.0.9/include/
+INCLUDES_C			=  $(CFLAGS) $(SDL) $(SDL_HEADER) $(LFLAGS) -L ~/.brew/Cellar/sdl2/2.0.9/lib/ -l SDL2-2.0.0
 SRC					= $(addprefix $(SRCSPATH), $(SRCS))
 OBJS				= $(SRC:.c=.o)
 
